@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 
 # variable names match following formulae: 
@@ -14,7 +13,7 @@ g = np.matrix([
     [79,65,60,70,77,68,58,75],
     [85,71,64,59,55,61,65,83],
     [87,79,69,68,65,76,78,94],
-], dtype=np.float)
+], dtype=float)
 
 ## my g
 #g = np.matrix([
@@ -51,6 +50,7 @@ Q = Q.T
 def alpha(u):
     return 1/np.sqrt(2) if (u == 0) else 1
 
+# discrete cosine transform a single pixel in an 8x8 block
 def dct(g,u,v):
     pre = (1/4) * alpha(u) * alpha(v)
     # terms for all combinations of x and y 
@@ -60,19 +60,23 @@ def dct(g,u,v):
     # sum the terms and multiply with the scalar
     return pre * np.sum(xy_terms)
 
-
-if __name__ == '__main__':
-
-    # normalize at 0 origin for DCT
-    g -= 128
-
-    # dct(g) =  G
+# transform all pixels in an 8x8 block
+def DCT(g):
     G = np.empty_like(g)
     ite = np.nditer(g, flags=['multi_index'])
     # apply dct to every element in g
     for e in ite:
         (u,v) = ite.multi_index
         G[u,v] = dct(g,u,v)
+
+    return G
+
+if __name__ == '__main__':
+
+    # normalize at 0 origin for DCT
+    g -= 128
+
+    G = DCT(g)
 
     # quantize
     B = np.around(G/Q)
