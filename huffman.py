@@ -2,6 +2,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 import numpy as np
 from dct import DCT, Q
+import operator
 
 im = Image.open("./lenargb.jpg")
 print(im.format, im.size, im.mode)
@@ -32,23 +33,26 @@ Yc = np.around(Yc/Q)
 
 print(Yc)
 
+DCs = []
+# get all DC components
+for x in range(64):
+    for y in range(64):
 
-## get all DC components
-#for x in range(64) y in range(y):
-#
-#    # get coefficients
-#    Yc = DCT(index64(Ya,0,0))
-#
-#    # quantize
-#    Yc = np.around(Yc/Q)
+        # get coefficients
+        Yc = DCT(index64(Ya,x,y))
+
+        # quantize
+        Yc = np.around(Yc/Q)
+
+        DCs += [Yc[0,0]]
+
+print(DCs[:10])
 
 # entropy encode the quantized coefficients
 
-# apply run length encoding
-
-# store quant. coeffs. in zig-zag pattern
-
-# store difference in DC parts
+# calculate difference in DC components
+deltas = list(map(operator.sub, DCs[1:], DCs[:-1]))
+print(deltas[:10])
 
 # delta = difference between current and previous block
 
