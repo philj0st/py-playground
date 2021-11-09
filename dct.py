@@ -13,7 +13,10 @@ g = np.matrix([
     [79,65,60,70,77,68,58,75],
     [85,71,64,59,55,61,65,83],
     [87,79,69,68,65,76,78,94],
-], dtype=float)
+], dtype=float).T
+
+# transpose so wen can index(x,y) 
+# TODO: dont forget to transpose back before i.e printing and compare to wiki
 
 ## my g
 #g = np.matrix([
@@ -25,11 +28,8 @@ g = np.matrix([
 #    [172,170,165,166,163,163,162,158],
 #    [174,170,167,167,164,163,164,159],
 #    [174,173,170,167,167,166,166,160]
-#], dtype=float)
+#], dtype=float).T
 
-# transpose so wen can index(x,y) 
-# TODO: dont forget to transpose back before i.e printing and compare to wiki
-g = g.T
 
 # A typical quantization matrix (for a quality of 50% as specified in the original JPEG Standard)
 Q = np.matrix([
@@ -41,10 +41,7 @@ Q = np.matrix([
     [24,35,55,64,81,104,113,92],
     [49,64,78,87,103,121,120,101],
     [72,92,95,98,112,100,103,99],
-], dtype=float)
-
-# transpose Q to match indexing of g
-Q = Q.T
+], dtype=float).T
 
 
 def alpha(u):
