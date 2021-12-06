@@ -38,7 +38,7 @@ class Node(object):
     def split():
         return
 
-    # returns the new mbr after encompassing the given index
+    # returns the new minimum bounding rectangle (mbr) after encompassing the given index
     def new_mbr(self, index):
         lower = self.mbr_lower.copy()
         upper = self.mbr_upper.copy()
@@ -55,17 +55,16 @@ class Node(object):
         return lower, upper
 
     # check if the mbr of this node encompasses the given index
-    def contains(self, index):
-        for idx, (dim_min, dim_max) in enumerate(self.index_ranges):
-            if index[idx] < dim_min or dim_max < index[idx]:
-                return False
-        return True
+    def encompasses(self, index):
+        lower, upper = self.new_mbr(index)
+        return np.array_equal(lower, self.mbr_lower) and np.array_equal(upper, self.mbr_upper)
+
 
 lower = np.array([0,0])
 upper = np.array([100,100])
 n = Node(lower,upper,[])
 
 idx = np.array([33,15])
-idx2 = np.array([11,15])
-print(n.new_mbr(idx))
+idx2 = np.array([11,115])
+print(n.encompasses(idx))
 print(n.new_mbr(idx2))
