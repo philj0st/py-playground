@@ -24,27 +24,35 @@ m = 25
 
 ndim = 2
 
+import numpy as np
+class RTree(object):
+    def __init__(self):
+        self.root = None
+
 class Node(object):
-    def __init__(self, index_ranges, children):
-        self.index_ranges = index_ranges
+    def __init__(self, mbr_lower, mbr_upper, children):
+        self.mbr_lower = mbr_lower
+        self.mbr_upper = mbr_upper
         self.children = children
 
     def split():
         return
 
-    # return the enlargement needed in each dimension of the MBR if this node was to encompass the given index
-    def enlargement(self, index):
-        import pdb
-        pdb.set_trace()
-        dims = []
-        for idx, (dim_min, dim_max) in enumerate(self.index_ranges):
-            if index[idx] < dim_min:
-                dims.append(dim_min - index[idx])
-            elif dim_max < index[idx]:
-                dims.append(index[idx] - dim_max)
-            else:
-                dims.append(0)
-        return dims
+    # returns the new mbr after encompassing the given index
+    def new_mbr(self, index):
+        lower = self.mbr_lower.copy()
+        upper = self.mbr_upper.copy()
+
+        # adjust where index is out of bounds (oob)
+        lower_oob = (index - lower < 0)
+        lower[lower_oob] = index[lower_oob]
+
+        upper_oob = (index - upper > 0)
+        upper[upper_oob] = index[upper_oob]
+
+#        import pdb
+#        pdb.set_trace()
+        return lower, upper
 
     # check if the mbr of this node encompasses the given index
     def contains(self, index):
@@ -53,7 +61,11 @@ class Node(object):
                 return False
         return True
 
+lower = np.array([0,0])
+upper = np.array([100,100])
+n = Node(lower,upper,[])
 
-n = Node([(22,55),(11,18),(44,88)],[])
-print(n.contains([33, 15, 66]))
-print(n.enlargement([11, 5, 66]))
+idx = np.array([33,15])
+idx2 = np.array([11,15])
+print(n.new_mbr(idx))
+print(n.new_mbr(idx2))
