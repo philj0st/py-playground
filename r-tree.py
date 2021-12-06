@@ -32,6 +32,19 @@ class Node(object):
     def split():
         return
 
+    # return the enlargement needed in each dimension of the MBR if this node was to encompass the given index
+    def enlargement(self, index):
+        import pdb
+        pdb.set_trace()
+        dims = []
+        for idx, (dim_min, dim_max) in enumerate(self.index_ranges):
+            if index[idx] < dim_min:
+                dims.append(dim_min - index[idx])
+            elif dim_max < index[idx]:
+                dims.append(index[idx] - dim_max)
+            else:
+                dims.append(0)
+        return dims
 
     # check if the mbr of this node encompasses the given index
     def contains(self, index):
@@ -43,4 +56,4 @@ class Node(object):
 
 n = Node([(22,55),(11,18),(44,88)],[])
 print(n.contains([33, 15, 66]))
-
+print(n.enlargement([11, 5, 66]))
