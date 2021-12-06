@@ -38,6 +38,10 @@ class Node(object):
     def split():
         return
 
+    # returns mbr's size as the length of the vector diagonally through the bounding space (rectangle for 2d, box for 3d, ..)
+    def mbr_size(self):
+        return np.linalg.norm(self.mbr_upper - self.mbr_lower)
+
     # returns the new minimum bounding rectangle (mbr) after encompassing the given index
     def new_mbr(self, index):
         lower = self.mbr_lower.copy()
@@ -50,21 +54,30 @@ class Node(object):
         upper_oob = (index - upper > 0)
         upper[upper_oob] = index[upper_oob]
 
+        # new mbr - old one
+        enlargement = np.linalg.norm(upper - lower) - self.mbr_size()
 #        import pdb
 #        pdb.set_trace()
-        return lower, upper
+        return lower, upper, enlargement
 
     # check if the mbr of this node encompasses the given index
     def encompasses(self, index):
-        lower, upper = self.new_mbr(index)
+        lower, upper, _ = self.new_mbr(index)
         return np.array_equal(lower, self.mbr_lower) and np.array_equal(upper, self.mbr_upper)
 
 
 lower = np.array([0,0])
 upper = np.array([100,100])
-n = Node(lower,upper,[])
+zero_to_fifty = Node(lower,np.array([50,50]),[])
+fifty_to_hundred = Node(np.array([50,50]),upper,[])
+n = Node(lower,upper,[zero_to_fifty, fifty_to_hundred])
 
 idx = np.array([33,15])
 idx2 = np.array([11,115])
 print(n.encompasses(idx))
 print(n.new_mbr(idx2))
+print(n.mbr_size())
+print(zero_to_fifty.mbr_size())
+# most fitting subtree for given index
+print(sorted(n.children, key=lambda child: child.new_mbr(idx)[2])[0].mbr_lower)
+
