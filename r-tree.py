@@ -26,7 +26,7 @@ ndim = 2
 
 # multiply all dimensions of the bounding space (rectangle for 2d, box for 3d, ..)
 def ndim_space(vec):
-    return np.prod(vec, where=vec!=0)
+    return np.prod(vec, where=(vec!=0))
 
 import numpy as np
 class RTree(object):
@@ -76,14 +76,13 @@ class Node(object):
         upper[upper_oob] = index[upper_oob]
 
         # new mbr - old one
-        # #TODO suboptimal
         enlargement = ndim_space(upper - lower) - self.mbr_size()
         return lower, upper, enlargement
 
     # check if the mbr of this node encompasses the given index
     def encompasses(self, index):
-        lower, upper, _ = self.new_mbr(index)
-        return np.array_equal(lower, self.mbr_lower) and np.array_equal(upper, self.mbr_upper)
+        _, _, enlargement = self.new_mbr(index)
+        return not enlargement
 
 
 lower = np.array([0,0])
