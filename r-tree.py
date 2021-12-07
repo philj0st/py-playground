@@ -24,6 +24,10 @@ m = 25
 
 ndim = 2
 
+# multiply all dimensions of the bounding space (rectangle for 2d, box for 3d, ..)
+def ndim_space(vec):
+    return np.prod(vec, where=vec!=0)
+
 import numpy as np
 class RTree(object):
     def __init__(self):
@@ -47,9 +51,10 @@ class Node(object):
         else:
             self.indicies.append((index,value))
 
-    # returns mbr's size as the length of the vector diagonally through the bounding space (rectangle for 2d, box for 3d, ..)
+    # returns mbr's size: multiply all dimensions of the bounding space (rectangle for 2d, box for 3d, ..)
     def mbr_size(self):
-        return np.linalg.norm(self.mbr_upper - self.mbr_lower)
+        vec = self.mbr_upper - self.mbr_lower
+        return ndim_space(vec)
 
     # find the child node that enlarges the least when encompassing the index
     def best_fit_child(self, index):
@@ -71,7 +76,8 @@ class Node(object):
         upper[upper_oob] = index[upper_oob]
 
         # new mbr - old one
-        enlargement = np.linalg.norm(upper - lower) - self.mbr_size()
+        # #TODO suboptimal
+        enlargement = ndim_space(upper - lower) - self.mbr_size()
         return lower, upper, enlargement
 
     # check if the mbr of this node encompasses the given index
