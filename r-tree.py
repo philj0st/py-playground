@@ -34,13 +34,29 @@ class Node(object):
         self.mbr_lower = mbr_lower
         self.mbr_upper = mbr_upper
         self.children = children
+        self.indicies = []
 
-    def split():
-        return
+    def insert(self, index, value):
+        # if currently in a non-leaf node, insert the index in the best fit child node
+        if(self.children):
+            self.best_fit_child(index).insert(index,value)
+#            import pdb
+#            pdb.set_trace()
+
+        # once a child node was reached, just add the index
+        else:
+            self.indicies.append((index,value))
 
     # returns mbr's size as the length of the vector diagonally through the bounding space (rectangle for 2d, box for 3d, ..)
     def mbr_size(self):
         return np.linalg.norm(self.mbr_upper - self.mbr_lower)
+
+    # find the child node that enlarges the least when encompassing the index
+    def best_fit_child(self, index):
+        # if there's a tie, pick the smallest in size
+        best, *_ = sorted(self.children, key=lambda child: (child.new_mbr(index)[2],child.mbr_size))
+        return best
+
 
     # returns the new minimum bounding rectangle (mbr) after encompassing the given index
     def new_mbr(self, index):
@@ -56,8 +72,6 @@ class Node(object):
 
         # new mbr - old one
         enlargement = np.linalg.norm(upper - lower) - self.mbr_size()
-#        import pdb
-#        pdb.set_trace()
         return lower, upper, enlargement
 
     # check if the mbr of this node encompasses the given index
@@ -73,11 +87,12 @@ fifty_to_hundred = Node(np.array([50,50]),upper,[])
 n = Node(lower,upper,[zero_to_fifty, fifty_to_hundred])
 
 idx = np.array([33,15])
-idx2 = np.array([11,115])
+idx2 = np.array([66,115])
 print(n.encompasses(idx))
 print(n.new_mbr(idx2))
 print(n.mbr_size())
 print(zero_to_fifty.mbr_size())
 # most fitting subtree for given index
 print(sorted(n.children, key=lambda child: child.new_mbr(idx)[2])[0].mbr_lower)
-
+n.insert(idx,'some-id')
+n.insert(idx2,'some-id')
