@@ -29,6 +29,83 @@ m = 25
 
 ndim = 2
 
+class Node(object):
+    def __init__(self, mbr_lower, mbr_upper, children=None, indicies=None):
+        self.mbr_lower = mbr_lower
+        self.mbr_upper = mbr_upper
+        self.children = children if children else []
+        self.indicies = indicies if indicies else []
+        self.parent = None
+
+    # helpers
+    def mbr(self):
+        return self.mbr_lower, self.mbr_upper
+
+    # returns mbr's size: multiply all dimensions of the bounding space (rectangle for 2d, box for 3d, ..)
+    def size(self):
+        return ndim_space(self.mbr_lower, self.mbr_upper)
+
+    # area extension if this node was to add index
+    def area_extension(self, index):
+        return  ndim_space(*mbr_add_point(*self.mbr(),index)) - self.size()
+
+    # add indicies to leaf node and update its mbr
+    def insert_index(self, index, value):
+        self.indicies.append((index,value))
+
+        # expand nodes mbr to encompass new index
+        self.mbr_lower, self.mbr_upper = mbr_add_point(self.mbr_lower, self.mbr_upper, index)
+
+
+    def insert_child(self, index, value):
+        # if currently in a non-leaf node, insert the index in the best fit child node
+        if(self.children):
+            self.best_fit_child(index).insert(index,value)
+
+        # once a child node was reached, add the index
+        else:
+            self.indicies.append((index,value))
+            # and split the node if it's overflowing
+            if(M < len(self.indicies)):
+                self.split()
+
+#    # quadratic
+#    def split():
+#        # if the root node is being split, create a new root and attach n and n' as children
+#        if(not self.parent):
+#           left, right = self. 
+
+
+
+
+    # find the child node that enlarges the least when encompassing the index
+    def best_fit_child(self, index):
+        # if there's a tie, pick the smallest in size
+        best, *_ = sorted(self.children, key=lambda child: (child.new_mbr(index)[2],child.area()))
+        return best
+
+
+    # returns the new minimum bounding rectangle (mbr) after encompassing the given index
+    def new_mbr(self, index):
+        lower = self.mbr_lower.copy()
+        upper = self.mbr_upper.copy()
+
+        #TODO refactor np.minimum/maximum?
+        # adjust where index is out of bounds (oob)
+        lower_oob = (index - lower < 0)
+        lower[lower_oob] = index[lower_oob]
+
+        upper_oob = (index - upper > 0)
+        upper[upper_oob] = index[upper_oob]
+
+        # new mbr - old one
+        enlargement = ndim_space(lower,upper) - self.size()
+        return lower, upper, enlargement
+
+    # check if the mbr of this node encompasses the given index
+    def encompasses(self, index):
+        _, _, enlargement = self.new_mbr(index)
+        return not enlargement
 # multiply all dimensions of the bounding space (area for 2d, volume for 3d, ..) to receive a notion of size
 def ndim_space(mbr_lower, mbr_upper):
     vec = mbr_upper - mbr_lower
@@ -79,14 +156,12 @@ def split_points_quadratic(points):
         # otherwise pick the one with the maximum difference in area increase -> greatest preferance for one group over the other
         index, *_ = sorted([(index, abs(left.area_extension(index)-right.area_extension(index))) for index in remaining], key=op.itemgetter(1), reverse=True)
 
-        # add to the node with less area extension
+        # add to the node with least area extension
         # resolve ties by adding to smaller node
         # then fewer entries
-        area_extension = lambda node: node.area_extension(index)
-        size = lambda node: node.size()
-        entries = lambda node: len(node.indicies)
+        best_fit = lambda node: (node.area_extension(index), node.size(), len(node.indicies))
 
-        node, *_ = sorted([left, right], key=(area_extension, size, entries))
+        node, *_ = sorted([left, right], key=best_fit)
         node.insert_index(index)
 
         # and finally remove the inserted index from the remaining
@@ -101,7 +176,7 @@ two = np.array([100,100])
 indicies = [np.array([rnd.randint(0,100),rnd.randint(0,100)]) for _ in range(51)] + [one, two]
 l, r = split_points_quadratic(indicies)
 
-# pdb.set_trace()
+pdb.set_trace()
 
 
 #def split_ranges():
@@ -110,83 +185,6 @@ class RTree(object):
     def __init__(self):
         self.root = None
 
-class Node(object):
-    def __init__(self, mbr_lower, mbr_upper, children=None, indicies=None):
-        self.mbr_lower = mbr_lower
-        self.mbr_upper = mbr_upper
-        self.children = children if children else []
-        self.indicies = indicies if indicies else []
-        self.parent = None
-
-    # helpers
-    def mbr(self):
-        return self.mbr_lower, self.mbr_upper
-
-    # returns mbr's size: multiply all dimensions of the bounding space (rectangle for 2d, box for 3d, ..)
-    def size(self):
-        return ndim_space(self.mbr_lower, self.mbr_upper)
-
-    # area extension if this node was to add index
-    def area_extension(self, index):
-        return  ndim_space(mbr_add_point(*self.mbr(),index)) - self.area()
-
-    # add indicies to leaf node and update its mbr
-    def insert_index(self, index, value):
-        self.indicies.append((index,value))
-
-        # expand nodes mbr to encompass new index
-        self.mbr_lower, self.mbr_upper = mbr_add_point(self.mbr_lower, self.mbr_upper, index)
-
-
-    def insert_child(self, index, value):
-        # if currently in a non-leaf node, insert the index in the best fit child node
-        if(self.children):
-            self.best_fit_child(index).insert(index,value)
-
-        # once a child node was reached, add the index
-        else:
-            self.indicies.append((index,value))
-            # and split the node if it's overflowing
-            if(M < len(self.indicies)):
-                self.split()
-
-#    # quadratic
-#    def split():
-#        # if the root node is being split, create a new root and attach n and n' as children
-#        if(not self.parent):
-#           left, right = self. 
-
-
-
-
-    # find the child node that enlarges the least when encompassing the index
-    def best_fit_child(self, index):
-        # if there's a tie, pick the smallest in size
-        best, *_ = sorted(self.children, key=lambda child: (child.new_mbr(index)[2],child.mbr_size()))
-        return best
-
-
-    # returns the new minimum bounding rectangle (mbr) after encompassing the given index
-    def new_mbr(self, index):
-        lower = self.mbr_lower.copy()
-        upper = self.mbr_upper.copy()
-
-        #TODO refactor np.minimum/maximum?
-        # adjust where index is out of bounds (oob)
-        lower_oob = (index - lower < 0)
-        lower[lower_oob] = index[lower_oob]
-
-        upper_oob = (index - upper > 0)
-        upper[upper_oob] = index[upper_oob]
-
-        # new mbr - old one
-        enlargement = ndim_space(lower,upper) - self.size()
-        return lower, upper, enlargement
-
-    # check if the mbr of this node encompasses the given index
-    def encompasses(self, index):
-        _, _, enlargement = self.new_mbr(index)
-        return not enlargement
 
 
 lower = np.array([0,0])
