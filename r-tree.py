@@ -50,8 +50,8 @@ class Node(object):
         return  ndim_space(*mbr_add_point(*self.mbr(),index)) - self.size()
 
     # add indicies to leaf node and update its mbr
-    def insert_index(self, index, value):
-        self.indicies.append((index,value))
+    def insert_index(self, index):
+        self.indicies.append(index)
 
         # expand nodes mbr to encompass new index
         self.mbr_lower, self.mbr_upper = mbr_add_point(self.mbr_lower, self.mbr_upper, index)
@@ -106,6 +106,10 @@ class Node(object):
     def encompasses(self, index):
         _, _, enlargement = self.new_mbr(index)
         return not enlargement
+
+
+
+
 # multiply all dimensions of the bounding space (area for 2d, volume for 3d, ..) to receive a notion of size
 def ndim_space(mbr_lower, mbr_upper):
     vec = mbr_upper - mbr_lower
@@ -154,10 +158,10 @@ def split_points_quadratic(points):
             break
 
         # otherwise pick the one with the maximum difference in area increase -> greatest preferance for one group over the other
-        index, *_ = sorted([(index, abs(left.area_extension(index)-right.area_extension(index))) for index in remaining], key=op.itemgetter(1), reverse=True)
+        index, *_ = sorted(remaining, key=lambda idx: abs(left.area_extension(idx)-right.area_extension(idx)), reverse=True)
 
-        # add to the node with least area extension
-        # resolve ties by adding to smaller node
+        # now pick the best node for that index with the least area extension
+        # resolve ties by adding to the smaller node
         # then fewer entries
         best_fit = lambda node: (node.area_extension(index), node.size(), len(node.indicies))
 
