@@ -2,6 +2,9 @@ import numpy as np
 import pdb
 import random as rnd
 import operator as op
+import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Rectangle
 
 # multidimensional spatial indexing
 # range/similarity/nearest neighbour search required
@@ -14,18 +17,13 @@ M = 50
 # must be at least half of the fanout m >= M/2
 m = 25
 
-
 # every leaf node contains m <= index records <= M. unless it is the root.
 # every index record (I,id)'s I spatially contains the n-dim data obj represented by it's id
 
-
 # non-leaf nodes has m<= entries <=M of (I,ptr), I being the minimum bounding rectangle (MBR) that contains all rectangles in the child node.
 
-
-
-
 # all leafs appear on the same level
-# height of the R-Tree is <= ceil(log_m(N)). N being the number of index records.jo
+# height of the R-Tree is <= ceil(log_m(N)). N being the number of index records.
 
 ndim = 2
 
@@ -175,21 +173,31 @@ def split_points_quadratic(points):
     return left, right
 
 
-one = np.array([0,0])
-two = np.array([100,100])
-indicies = [np.array([rnd.randint(0,100),rnd.randint(0,100)]) for _ in range(51)] + [one, two]
+indicies = [np.array([rnd.randint(0,100),rnd.randint(0,100)]) for _ in range(M+1)]
 l, r = split_points_quadratic(indicies)
+fig, ax = plt.subplots()
+lxs = np.stack(l.indicies)[:,0]
+lys = np.stack(l.indicies)[:,1]
+plt.scatter(lxs,lys,marker='*', color='tab:blue', label='left')
+
+rxs = np.stack(r.indicies)[:,0]
+rys = np.stack(r.indicies)[:,1]
+plt.scatter(rxs,rys,marker='o', color='tab:orange', label='right')
+
+xy = np.minimum(l.mbr_lower,l.mbr_upper)
+width = l.mbr_upper[1] - l.mbr_lower[1]
+height = l.mbr_upper[0] - l.mbr_lower[0]
+lrect = Rectangle(xy,height,width)
+
+pc = PatchCollection([lrect], facecolor='none', alpha=0.5, edgecolor='r')
+ax.add_collection(pc)
+
+plt.legend()
+plt.grid()
+plt.show()
+
 
 pdb.set_trace()
-
-
-#def split_ranges():
-
-class RTree(object):
-    def __init__(self):
-        self.root = None
-
-
 
 lower = np.array([0,0])
 upper = np.array([100,100])
