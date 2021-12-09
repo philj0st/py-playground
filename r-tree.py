@@ -1,3 +1,7 @@
+import numpy as np
+import pdb
+import random as rnd
+
 # multidimensional spatial indexing
 # range/similarity/nearest neighbour search required
 # height balanced
@@ -24,11 +28,47 @@ m = 25
 
 ndim = 2
 
-# multiply all dimensions of the bounding space (rectangle for 2d, box for 3d, ..)
-def ndim_space(vec):
+# multiply all dimensions of the bounding space (area for 2d, volume for 3d, ..) to receive a notion of size
+def ndim_space(mbr_lower, mbr_upper):
+    vec = mbr_upper - mbr_lower
     return np.prod(vec, where=(vec!=0))
 
-import numpy as np
+# get a mbr for two points
+def mbr_points(pointx, pointy):
+    lower = np.minimum(pointx, pointy)
+    upper = np.maximum(pointx, pointy)
+    return lower, upper
+
+# pick a seed pair from the M+1 entries that when paired make for the biggest mbr
+def split_points_quadratic(points):
+    remaining = points.copy()
+    # cartesian product of points without duplicates
+    pairs = [(one,other) for one in remaining for other in remaining if one is not other]
+
+    #  sort by the size of the their mbr
+    furthest_apart = sorted(pairs, key=lambda pair: ndim_space(*mbr_points(*pair)), reverse=True)
+    (seedl, seedr), *_ = furthest_apart
+    # delete the two seeds
+    pdb.set_trace()
+    remaining.remove(seedl)
+    remaining.remove(seedr)
+
+    # recalculate the mbr for every remaining point not assigned to a seed group
+    # pick the one with the biggest difference in mbrs to the two seed groups
+
+    return seedl, seedr
+
+
+one = np.array([0,0])
+two = np.array([100,100])
+indicies = [np.array([rnd.randint(0,100),rnd.randint(0,100)]) for _ in range(51)] + [one, two]
+seedl, seedr = split_points_quadratic(indicies)
+
+# pdb.set_trace()
+
+
+#def split_ranges():
+
 class RTree(object):
     def __init__(self):
         self.root = None
@@ -39,27 +79,36 @@ class Node(object):
         self.mbr_upper = mbr_upper
         self.children = children
         self.indicies = []
+        self.parent = None
 
     def insert(self, index, value):
         # if currently in a non-leaf node, insert the index in the best fit child node
         if(self.children):
             self.best_fit_child(index).insert(index,value)
-#            import pdb
-#            pdb.set_trace()
 
-        # once a child node was reached, just add the index
+        # once a child node was reached, add the index
         else:
             self.indicies.append((index,value))
+            # and split the node if it's overflowing
+            if(M < len(self.indicies)):
+                self.split()
+
+#    # quadratic
+#    def split():
+#        # if the root node is being split, create a new root and attach n and n' as children
+#        if(not self.parent):
+#           left, rigth = self. 
+
+
 
     # returns mbr's size: multiply all dimensions of the bounding space (rectangle for 2d, box for 3d, ..)
     def mbr_size(self):
-        vec = self.mbr_upper - self.mbr_lower
-        return ndim_space(vec)
+        return ndim_space(self.mbr_lower, self.mbr_upper)
 
     # find the child node that enlarges the least when encompassing the index
     def best_fit_child(self, index):
         # if there's a tie, pick the smallest in size
-        best, *_ = sorted(self.children, key=lambda child: (child.new_mbr(index)[2],child.mbr_size))
+        best, *_ = sorted(self.children, key=lambda child: (child.new_mbr(index)[2],child.mbr_size()))
         return best
 
 
@@ -68,6 +117,7 @@ class Node(object):
         lower = self.mbr_lower.copy()
         upper = self.mbr_upper.copy()
 
+        #TODO refactor np.minimum/maximum?
         # adjust where index is out of bounds (oob)
         lower_oob = (index - lower < 0)
         lower[lower_oob] = index[lower_oob]
@@ -76,7 +126,7 @@ class Node(object):
         upper[upper_oob] = index[upper_oob]
 
         # new mbr - old one
-        enlargement = ndim_space(upper - lower) - self.mbr_size()
+        enlargement = ndim_space(lower,upper) - self.mbr_size()
         return lower, upper, enlargement
 
     # check if the mbr of this node encompasses the given index
