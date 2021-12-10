@@ -126,19 +126,31 @@ def mbr_add_point(mbr_lower, mbr_upper, point):
     return lower, upper
 
 # pick a seed pair from the M+1 entries that when paired make for the biggest mbr
-# perform the split and return two leaf nodes with all the indicies assigned according to the quadratic alogrithm
-def split_points_quadratic(points):
-    remaining = points.copy()
+def quadratic_seeds(indicies):
     # cartesian product of points without (x,x) #TODO we still have (x,y) and (y,x) in there tho! ok for now
-    pairs = [(one,other) for one in remaining for other in remaining if one is not other]
+    pairs = [(one,other) for one in indicies for other in indicies if one is not other]
 
     #  sort by the size of the their mbr
-    furthest_apart = sorted(pairs, key=lambda pair: ndim_space(*mbr_points(*pair)), reverse=True)
-    (seedl, seedr), *_ = furthest_apart
+    big_mbrs = sorted(pairs, key=lambda pair: ndim_space(*mbr_points(*pair)), reverse=True)
+    (seedl, seedr), *_ = big_mbrs
+    return seedl, seedr
+
+# pick a seed pair in a simpler linear fashion
+def linear_seeds(indicies):
+    # find the lowest upper and the highest lower bounds of the rectangles / in case of point indicies we just sort by norm of the vector
+    # TODO: idk maybe np.linalg.norm is better?
+    closest, *_, farthest = sorted(indicies, key=np.sum)
+    return closest, farthest
+
+
+# perform the split and return two leaf nodes with all the indicies assigned 
+def split_indicies(indicies, pick_seeds):
+    remaining = indicies.copy()
+
+    seedl, seedr = pick_seeds(remaining)
 
     # delete the two seeds from the remaining points
-    remaining = [point for point in remaining if point is not seedl and point is not seedr]
-    # pdb.set_trace()
+    remaining = [index for index in remaining if index is not seedl and index is not seedr]
 
     # start two seed groups from here on we think of the points being split into left and right groups but l/r has no actual spatial meaning for their indicies
     left, right = Node(seedl, seedl, indicies=[seedl]), Node(seedr, seedr, indicies=[seedr])
@@ -173,31 +185,74 @@ def split_points_quadratic(points):
     return left, right
 
 
+# run quad spli
 indicies = [np.array([rnd.randint(0,100),rnd.randint(0,100)]) for _ in range(M+1)]
-l, r = split_points_quadratic(indicies)
+
+ql, qr = split_indicies(indicies, quadratic_seeds)
+ll, lr = split_indicies(indicies, linear_seeds)
+
+# denote left/right by
+cmap = ['tab:orange','tab:purple']
+# denote linear/quad by rectangle color
+ec = ['tab:pink','tab:cyan']
+labels = ['quadratic', 'linear']
+# plot result
 fig, ax = plt.subplots()
+
+
+# quadratic
+l,r = ql,qr
 lxs = np.stack(l.indicies)[:,0]
 lys = np.stack(l.indicies)[:,1]
-plt.scatter(lxs,lys,marker='*', color='tab:blue', label='left')
+plt.scatter(lxs,lys,color=cmap[0], edgecolor='none', label='left '+labels[0])
 
 rxs = np.stack(r.indicies)[:,0]
 rys = np.stack(r.indicies)[:,1]
-plt.scatter(rxs,rys,marker='o', color='tab:orange', label='right')
+plt.scatter(rxs,rys,color=cmap[1], edgecolor='none', label='right '+labels[0])
 
-xy = np.minimum(l.mbr_lower,l.mbr_upper)
+lxy = np.minimum(l.mbr_lower,l.mbr_upper)
 width = l.mbr_upper[1] - l.mbr_lower[1]
 height = l.mbr_upper[0] - l.mbr_lower[0]
-lrect = Rectangle(xy,height,width)
+lrect = Rectangle(lxy,height,width)
 
-pc = PatchCollection([lrect], facecolor='none', alpha=0.5, edgecolor='r')
+rxy = np.minimum(r.mbr_lower,r.mbr_upper)
+width = r.mbr_upper[1] - r.mbr_lower[1]
+height = r.mbr_upper[0] - r.mbr_lower[0]
+rrect = Rectangle(rxy,height,width)
+
+pc = PatchCollection([lrect], facecolor=cmap[0], alpha=0.2, edgecolor='none')
+ax.add_collection(pc)
+pc = PatchCollection([rrect], facecolor=cmap[1], alpha=0.2, edgecolor='none')
 ax.add_collection(pc)
 
+# linear
+l,r = ll,lr
+lxs = np.stack(l.indicies)[:,0]
+lys = np.stack(l.indicies)[:,1]
+plt.scatter(lxs,lys,color='none', edgecolor=cmap[0], label='left '+labels[1])
+
+rxs = np.stack(r.indicies)[:,0]
+rys = np.stack(r.indicies)[:,1]
+plt.scatter(rxs,rys,color='none', edgecolor=cmap[1], label='right '+labels[1])
+
+lxy = np.minimum(l.mbr_lower,l.mbr_upper)
+width = l.mbr_upper[1] - l.mbr_lower[1]
+height = l.mbr_upper[0] - l.mbr_lower[0]
+lrect = Rectangle(lxy,height,width)
+
+rxy = np.minimum(r.mbr_lower,r.mbr_upper)
+width = r.mbr_upper[1] - r.mbr_lower[1]
+height = r.mbr_upper[0] - r.mbr_lower[0]
+rrect = Rectangle(rxy,height,width)
+
+pc = PatchCollection([lrect], facecolor='none', alpha=0.9, edgecolor=cmap[0])
+ax.add_collection(pc)
+pc = PatchCollection([rrect], facecolor='none', alpha=0.9, edgecolor=cmap[1])
+ax.add_collection(pc)
 plt.legend()
-plt.grid()
 plt.show()
 
 
-pdb.set_trace()
 
 lower = np.array([0,0])
 upper = np.array([100,100])
